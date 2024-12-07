@@ -5,6 +5,8 @@ const authModel  = require('../models/auth');
 const helpers    = require('../lib/helpers');
 const TokenModel = require('../models/token');
 
+const ERROR_MESSAGE_INVALID_AUTH = 'Invalid email or password';
+
 module.exports = {
 
 	/**
@@ -24,7 +26,7 @@ module.exports = {
 
 		return userModel
 			.query()
-			.where('email', data.identity)
+			.where('email', data.identity.toLowerCase().trim())
 			.andWhere('is_deleted', 0)
 			.andWhere('is_disabled', 0)
 			.first()
@@ -69,15 +71,15 @@ module.exports = {
 													};
 												});
 										} else {
-											throw new error.AuthError('Invalid password');
+											throw new error.AuthError(ERROR_MESSAGE_INVALID_AUTH);
 										}
 									});
 							} else {
-								throw new error.AuthError('No password auth for user');
+								throw new error.AuthError(ERROR_MESSAGE_INVALID_AUTH);
 							}
 						});
 				} else {
-					throw new error.AuthError('No relevant user found');
+					throw new error.AuthError(ERROR_MESSAGE_INVALID_AUTH);
 				}
 			});
 	},

@@ -2,6 +2,7 @@
 // http://vincit.github.io/objection.js/
 
 const db          = require('../db');
+const helpers     = require('../lib/helpers');
 const Model       = require('objection').Model;
 const User        = require('./user');
 const AccessList  = require('./access_list');
@@ -9,6 +10,18 @@ const Certificate = require('./certificate');
 const now         = require('./now_helper');
 
 Model.knex(db);
+
+const boolFields = [
+	'is_deleted',
+	'ssl_forced',
+	'caching_enabled',
+	'block_exploits',
+	'allow_websocket_upgrade',
+	'http2_support',
+	'enabled',
+	'hsts_enabled',
+	'hsts_subdomains',
+];
 
 class ProxyHost extends Model {
 	$beforeInsert () {
@@ -37,6 +50,16 @@ class ProxyHost extends Model {
 		}
 	}
 
+	$parseDatabaseJson(json) {
+		json = super.$parseDatabaseJson(json);
+		return helpers.convertIntFieldsToBool(json, boolFields);
+	}
+
+	$formatDatabaseJson(json) {
+		json = helpers.convertBoolFieldsToInt(json, boolFields);
+		return super.$formatDatabaseJson(json);
+	}
+
 	static get name () {
 		return 'ProxyHost';
 	}
@@ -60,7 +83,6 @@ class ProxyHost extends Model {
 				},
 				modify: function (qb) {
 					qb.where('user.is_deleted', 0);
-					qb.omit(['id', 'created_on', 'modified_on', 'is_deleted', 'email', 'roles']);
 				}
 			},
 			access_list: {
@@ -72,7 +94,6 @@ class ProxyHost extends Model {
 				},
 				modify: function (qb) {
 					qb.where('access_list.is_deleted', 0);
-					qb.omit(['id', 'created_on', 'modified_on', 'is_deleted']);
 				}
 			},
 			certificate: {
@@ -84,7 +105,6 @@ class ProxyHost extends Model {
 				},
 				modify: function (qb) {
 					qb.where('certificate.is_deleted', 0);
-					qb.omit(['id', 'created_on', 'modified_on', 'is_deleted']);
 				}
 			}
 		};

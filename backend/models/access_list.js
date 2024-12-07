@@ -2,6 +2,7 @@
 // http://vincit.github.io/objection.js/
 
 const db               = require('../db');
+const helpers          = require('../lib/helpers');
 const Model            = require('objection').Model;
 const User             = require('./user');
 const AccessListAuth   = require('./access_list_auth');
@@ -9,6 +10,12 @@ const AccessListClient = require('./access_list_client');
 const now              = require('./now_helper');
 
 Model.knex(db);
+
+const boolFields = [
+	'is_deleted',
+	'satisfy_any',
+	'pass_auth',
+];
 
 class AccessList extends Model {
 	$beforeInsert () {
@@ -23,6 +30,16 @@ class AccessList extends Model {
 
 	$beforeUpdate () {
 		this.modified_on = now();
+	}
+
+	$parseDatabaseJson(json) {
+		json = super.$parseDatabaseJson(json);
+		return helpers.convertIntFieldsToBool(json, boolFields);
+	}
+
+	$formatDatabaseJson(json) {
+		json = helpers.convertBoolFieldsToInt(json, boolFields);
+		return super.$formatDatabaseJson(json);
 	}
 
 	static get name () {
@@ -50,7 +67,6 @@ class AccessList extends Model {
 				},
 				modify: function (qb) {
 					qb.where('user.is_deleted', 0);
-					qb.omit(['id', 'created_on', 'modified_on', 'is_deleted', 'email', 'roles']);
 				}
 			},
 			items: {
@@ -59,9 +75,6 @@ class AccessList extends Model {
 				join:       {
 					from: 'access_list.id',
 					to:   'access_list_auth.access_list_id'
-				},
-				modify: function (qb) {
-					qb.omit(['id', 'created_on', 'modified_on', 'access_list_id', 'meta']);
 				}
 			},
 			clients: {
@@ -70,9 +83,6 @@ class AccessList extends Model {
 				join:       {
 					from: 'access_list.id',
 					to:   'access_list_client.access_list_id'
-				},
-				modify: function (qb) {
-					qb.omit(['id', 'created_on', 'modified_on', 'access_list_id', 'meta']);
 				}
 			},
 			proxy_hosts: {
@@ -84,18 +94,9 @@ class AccessList extends Model {
 				},
 				modify: function (qb) {
 					qb.where('proxy_host.is_deleted', 0);
-					qb.omit(['is_deleted', 'meta']);
 				}
 			}
 		};
-	}
-
-	get satisfy() {
-		return this.satisfy_any ? 'satisfy any' : 'satisfy all';
-	}
-
-	get passauth() {
-		return this.pass_auth ? '' : 'proxy_set_header Authorization "";';
 	}
 }
 

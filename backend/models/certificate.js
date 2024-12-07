@@ -1,12 +1,17 @@
 // Objection Docs:
 // http://vincit.github.io/objection.js/
 
-const db    = require('../db');
-const Model = require('objection').Model;
-const User  = require('./user');
-const now   = require('./now_helper');
+const db      = require('../db');
+const helpers = require('../lib/helpers');
+const Model   = require('objection').Model;
+const User    = require('./user');
+const now     = require('./now_helper');
 
 Model.knex(db);
+
+const boolFields = [
+	'is_deleted',
+];
 
 class Certificate extends Model {
 	$beforeInsert () {
@@ -40,6 +45,16 @@ class Certificate extends Model {
 		}
 	}
 
+	$parseDatabaseJson(json) {
+		json = super.$parseDatabaseJson(json);
+		return helpers.convertIntFieldsToBool(json, boolFields);
+	}
+
+	$formatDatabaseJson(json) {
+		json = helpers.convertBoolFieldsToInt(json, boolFields);
+		return super.$formatDatabaseJson(json);
+	}
+
 	static get name () {
 		return 'Certificate';
 	}
@@ -63,7 +78,6 @@ class Certificate extends Model {
 				},
 				modify: function (qb) {
 					qb.where('user.is_deleted', 0);
-					qb.omit(['id', 'created_on', 'modified_on', 'is_deleted', 'email', 'roles']);
 				}
 			}
 		};
